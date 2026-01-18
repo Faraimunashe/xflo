@@ -3,8 +3,8 @@
     <SectionHeader title="Create Journal Entry" />
     
     <Card>
-          <form @submit.prevent="submit">
-            <div class="space-y-6">
+          <form @submit.prevent="submit" class="overflow-visible">
+            <div class="space-y-6 overflow-visible">
               <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <DateInput
                   v-model="form.entry_date"
@@ -47,7 +47,7 @@
                     Journal Lines <span class="text-red-500">*</span>
                   </label>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto overflow-y-visible relative">
                   <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                       <tr>
@@ -60,17 +60,19 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                       <tr v-for="(line, index) in form.lines" :key="index">
-                        <td class="px-4 py-3">
-                          <SearchSelect
-                            v-model="line.account_id"
-                            :options="accounts"
-                            option-label="label"
-                            option-value="id"
-                            track-by="id"
-                            placeholder="Select Account"
-                            required
-                            @update:model-value="checkAndAddLine(index)"
-                          />
+                        <td class="px-4 py-3 relative z-10">
+                          <div class="relative z-10">
+                            <SearchSelect
+                              v-model="line.account_id"
+                              :options="accounts"
+                              option-label="label"
+                              option-value="id"
+                              track-by="id"
+                              placeholder="Select Account"
+                              required
+                              @update:model-value="checkAndAddLine(index)"
+                            />
+                          </div>
                           <span v-if="errors[`lines.${index}.account_id`]" class="text-xs text-red-600">
                             {{ errors[`lines.${index}.account_id`] }}
                           </span>
@@ -129,7 +131,7 @@
               </div>
             </div>
 
-            <div class="mt-6 sticky bottom-0 bg-white border-t border-gray-200 p-4 -mx-6 -mb-6">
+            <div class="mt-6 sticky bottom-0 bg-white border-t border-gray-200 p-4 -mx-6 -mb-6 z-10">
               <div class="flex justify-between items-center mb-4">
                 <div class="flex gap-8">
                   <div>

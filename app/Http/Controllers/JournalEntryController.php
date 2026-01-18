@@ -168,4 +168,27 @@ class JournalEntryController extends Controller
             return back()->with('error', $e->getMessage());
         }
     }
+
+    public function destroy(JournalEntry $journalEntry)
+    {
+        try {
+            // Prevent deletion if this entry has a reversal entry (i.e., has been reversed)
+            if ($journalEntry->reversal()->exists()) {
+                return back()->with('error', 'Cannot delete entry that has been reversed. Delete the reversal entry first.');
+            }
+
+            // Prevent deletion if this entry is a reversal of another entry
+            // (i.e., another entry's reversed_entry_id points to this entry)
+            if ($journalEntry->reversed_entry_id !== null) {
+                return back()->with('error', 'Cannot delete reversal entry. Delete the original entry first.');
+            }
+
+            $journalEntry->delete();
+
+            return redirect()->route('journal-entries.index')
+                ->with('success', 'Journal entry deleted successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to delete journal entry: ' . $e->getMessage());
+        }
+    }
 }

@@ -102,4 +102,28 @@ const customLabelFn = (option) => {
 .multiselect--error .multiselect__tags {
   border-color: #ef4444;
 }
+
+/* Ensure dropdown appears above other elements */
+.multiselect {
+  position: relative;
+}
+
+/* Fix z-index for dropdown in tables and scrollable containers */
+.multiselect__content-wrapper {
+  z-index: 9999 !important;
+  position: absolute !important;
+  overflow: visible !important;
+}
+
+.multiselect__content {
+  z-index: 9999 !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  overflow-x: visible !important;
+}
+
+/* Ensure dropdown list items are visible */
+.multiselect__option {
+  z-index: 9999 !important;
+}
 </style>

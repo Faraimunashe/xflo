@@ -25,6 +25,11 @@
             >
               <i class="fas fa-undo mr-2"></i> Reverse Entry
             </DangerButton>
+            <DangerButton
+              @click="showDeleteConfirm = true"
+            >
+              <i class="fas fa-trash mr-2"></i> Delete Entry
+            </DangerButton>
           </div>
         </div>
 
@@ -122,6 +127,15 @@
       @confirm="reverseEntry"
       @close="showReverseConfirm = false"
     />
+
+    <ConfirmModal
+      :show="showDeleteConfirm"
+      title="Delete Journal Entry"
+      :message="`Are you sure you want to permanently delete journal entry #${entry.id}? This action cannot be undone.`"
+      confirm-text="Delete Entry"
+      @confirm="deleteEntry"
+      @close="showDeleteConfirm = false"
+    />
 </template>
 
 <script setup>
@@ -140,6 +154,7 @@ defineOptions({
 });
 
 const showReverseConfirm = ref(false);
+const showDeleteConfirm = ref(false);
 const posting = ref(false);
 
 const props = defineProps({
@@ -170,6 +185,16 @@ const reverseEntry = () => {
   showReverseConfirm.value = false;
   router.post(`/journal-entries/${props.entry.id}/reverse`, {}, {
     preserveScroll: true,
+  });
+};
+
+const deleteEntry = () => {
+  showDeleteConfirm.value = false;
+  router.delete(`/journal-entries/${props.entry.id}`, {
+    preserveScroll: false,
+    onSuccess: () => {
+      router.visit('/journal-entries');
+    },
   });
 };
 

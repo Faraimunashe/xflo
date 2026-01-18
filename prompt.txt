@@ -1,0 +1,327 @@
+You are building a SIMPLE SCHOOL ACCOUNTING CAPTURE + REPORTING SYSTEM for
+PARADISE INTERNATIONAL SCHOOL
+using Laravel + Inertia.js + Vue 3 + Tailwind.
+
+Single (hardcoded) organisation only.
+DO NOT create an organizations table.
+DO NOT add supporting tables beyond the core accounting tables.
+School name must be hardcoded as:
+"Paradise International School"
+and displayed consistently on:
+- Dashboard
+- Reports headers
+- Export titles (PDF/Excel stubs)
+- Navigation branding
+
+Follow good Laravel coding standards.
+Use route:resource where applicable.
+Variables and functions must use snake_case.
+Do not write comments.
+Use components for repeated UI patterns.
+Keep UI professional, clean, intuitive, and simple to navigate.
+Top navigation only (no sidebar).
+Interactive feedback is crucial: inline validation, totals, status indicators, and toast notifications.
+
+TECH STACK
+- Laravel (PHP 8.1+)
+- MySQL
+- Inertia.js adapter
+- Vue 3
+- Tailwind CSS
+- vue-multiselect for searchable dropdowns (single + multi)
+- PHP native enums for all status/type/source fields
+- AUTH: Use EXISTING CUSTOM AUTH in the project
+  - Do NOT install Breeze / Jetstream / Fortify
+  - Assume users table and auth middleware already exist
+  - Use auth()->id() and auth()->user()
+
+GOAL
+Users must capture accounting entries (including backdated entries for the past 2 years) and generate:
+- Account statement (ledger) with running balance
+- Trial balance
+- Income statement (profit/loss)
+- Balance sheet
+- Cash flow (direct method)
+
+CORE ACCOUNTING RULES
+- Double-entry accounting enforced
+- sum(debit) == sum(credit) required to post
+- Only POSTED entries appear in reports
+- Users can save DRAFT entries
+- Posted entries are locked
+- Corrections are done via REVERSAL entries
+- Never store balances in the database
+- All balances calculated from journal_lines
+- Disable posting until entry is valid and balanced
+
+ENUMS (app/Enums, PHP native enums)
+Create enums with string values:
+- AccountType: asset, liability, equity, revenue, expense
+- NormalBalance: debit, credit
+- CashflowType: operating, investing, financing
+- JournalEntryStatus: draft, posted, reversed
+- JournalSource: tuition, levy, expense, bank, opening_balance, adjustment
+
+DATABASE TABLES (ONLY THESE THREE)
+
+1) accounts
+- id
+- code (string 20, unique)
+- name (string)
+- type (enum AccountType)
+- normal_balance (enum NormalBalance)
+- is_cash (boolean default false)
+- cashflow_type (enum CashflowType nullable)
+- is_active (boolean default true)
+- created_by (nullable FK users nullOnDelete)
+- updated_by (nullable FK users nullOnDelete)
+- timestamps
+- softDeletes
+Indexes:
+- unique(code)
+- type
+- is_cash
+- cashflow_type
+
+2) journal_entries
+- id
+- entry_date (date)
+- reference (string 50 nullable)
+- description (string 255)
+- source (enum JournalSource nullable)
+- status (enum JournalEntryStatus default draft)
+- posted_at (timestamp nullable)
+- created_by (FK users cascadeOnDelete)
+- posted_by (nullable FK users nullOnDelete)
+- reversed_entry_id (nullable FK self nullOnDelete)
+- timestamps
+- softDeletes
+Indexes:
+- (entry_date, status)
+- reference
+- source
+
+3) journal_lines
+- id
+- journal_entry_id (FK cascadeOnDelete)
+- account_id (FK restrictOnDelete)
+- line_no (smallint default 1)
+- narration (string 255 nullable)
+- debit (decimal 18,2 default 0)
+- credit (decimal 18,2 default 0)
+- timestamps
+Indexes:
+- (journal_entry_id, line_no)
+- (account_id, journal_entry_id)
+
+LARAVEL MODELS + CASTING
+- Account casts:
+  - type => AccountType
+  - normal_balance => NormalBalance
+  - cashflow_type => CashflowType
+  - is_cash => boolean
+  - is_active => boolean
+- JournalEntry casts:
+  - entry_date => date
+  - posted_at => datetime
+  - status => JournalEntryStatus
+  - source => JournalSource
+Relationships:
+- Account hasMany JournalLine
+- JournalEntry hasMany JournalLine
+- JournalLine belongsTo Account and JournalEntry
+
+BUSINESS LOGIC (Action Classes)
+
+SaveJournalEntryAction
+- create/update journal_entries + journal_lines
+- do NOT allow editing if entry is posted
+- allow draft saves with partial lines
+- strict validation only enforced during posting
+
+PostJournalEntryAction
+- only allow if status == draft
+- validations:
+  - minimum 2 lines
+  - account_id required per line
+  - debit XOR credit per line
+  - total_debit == total_credit
+- set status posted
+- set posted_at now
+- set posted_by auth()->id()
+
+ReverseJournalEntryAction
+- only allow reversing posted entries
+- create new journal entry with source adjustment
+- description: "Reversal of entry #{id}"
+- swap debit/credit for each line
+- auto-post reversal
+- update original entry:
+  - status = reversed
+  - reversed_entry_id = reversal id
+
+ROUTES
+Use resource routes:
+- Route::resource('accounts', AccountController::class)
+- Route::resource('journal-entries', JournalEntryController::class)
+
+Custom routes:
+- POST journal-entries/{journal_entry}/post
+- POST journal-entries/{journal_entry}/reverse
+
+Reports:
+- GET reports/ledger
+- GET reports/trial-balance
+- GET reports/income-statement
+- GET reports/balance-sheet
+- GET reports/cashflow
+
+AUTH
+- Protect all accounting routes with existing auth middleware
+- Display logged-in user name in top navigation
+
+UI / UX REQUIREMENTS (VERY IMPORTANT)
+
+Layout:
+- Top navigation only
+- Brand text: "Paradise International School – Accounts"
+- Active nav highlighting
+
+Reusable Vue components:
+- PrimaryButton
+- SecondaryButton
+- DangerButton
+- TextInput
+- DateInput
+- TextareaInput
+- FormError
+- Card
+- SectionHeader
+- Toast / Snackbar service
+- ConfirmModal (for post/reverse)
+- SlideOver (optional, only if clean)
+
+Searchable dropdowns:
+- Use vue-multiselect
+- Create reusable components:
+  - SearchSelect.vue (single select)
+  - SearchMultiSelect.vue (multi select)
+- Option format:
+  { id, label: "CODE - NAME", code, name }
+
+JOURNAL ENTRY CREATE / EDIT PAGE (CRITICAL UX)
+
+Header:
+- Entry Date (required)
+- Reference (optional)
+- Source (enum select)
+- Description (required)
+
+Lines grid:
+- Account (SearchSelect)
+- Debit
+- Credit
+- Narration
+- Remove line
+- Typing in debit clears credit and vice versa
+- Auto-add new line when last row becomes valid
+
+Sticky footer:
+- Total Debit
+- Total Credit
+- Difference
+- Balanced / Not Balanced badge
+
+Actions:
+- Save Draft (always enabled)
+- Post Entry (disabled until balanced + valid)
+- Reverse Entry (only for posted entries, confirm required)
+
+Feedback:
+- Inline field errors
+- Toast on save/post/reverse
+- Loading states on buttons
+
+ACCOUNTS UI
+- List accounts with: code, name, type, cash flag, cashflow type, active
+- Create/Edit forms
+- Prevent delete if account is used
+- Friendly error message when delete blocked
+
+JOURNAL ENTRIES LIST
+- Filters: date range, status, source, reference
+- Actions:
+  - Edit (draft only)
+  - Post (draft only)
+  - Reverse (posted only)
+- Status badges
+
+REPORTS UI
+Single page with tabs:
+
+Ledger:
+- Filter by account + date range
+- Running balance calculated backend-side
+
+Trial Balance:
+- As-at date
+
+Income Statement:
+- Date range
+- Show Paradise International School header
+- Revenue, Expenses, Net Surplus
+
+Balance Sheet:
+- As-at date
+- Assets = Liabilities + Equity
+- Include current surplus
+
+Cash Flow (Direct):
+- Date range
+- Operating / Investing / Financing
+- Based on is_cash + cashflow_type
+
+REPORT RULES
+- Only include journal_entries with status POSTED
+- Use entry_date for filtering
+- Never use created_at for accounting logic
+
+SEEDER
+Create a Chart of Accounts seeder for Paradise International School:
+
+Assets:
+- 1001 Cash on Hand (asset, debit, is_cash true, operating)
+- 1002 Bank Account (asset, debit, is_cash true, operating)
+
+Revenue:
+- 4001 Tuition Fees (revenue, credit)
+- 4002 Levies Income (revenue, credit)
+
+Expenses:
+- 5001 Salaries & Wages (expense, debit)
+- 5002 Utilities
+- 5003 Stationery
+- 5004 Fuel & Transport
+- 5009 Bank Charges
+
+Equity:
+- 3001 Retained Earnings (equity, credit)
+
+Allow JournalSource opening_balance.
+
+DELIVERABLES
+Implement:
+- migrations
+- enums
+- models
+- seeders
+- controllers
+- routes
+- action services
+- Vue layout and navigation
+- reusable UI components
+- Accounts pages
+- Journal Entries pages
+- Reports pages with working calculations
+
+Code must be clean, consistent, and production-ready.

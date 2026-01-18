@@ -1,0 +1,102 @@
+Exploring the project structure and key files.
+
+
+[5 tools called]
+
+
+Reading key files to understand the project structure:
+
+
+[6 tools called]
+
+
+Reviewing additional files to understand the application structure:
+
+
+[8 tools called]
+
+
+Checking additional files for project details:
+
+
+[6 tools called]
+
+
+Checking database configuration and any existing migrations or models:
+
+
+[4 tools called]
+
+
+## Project Overview
+
+**Xflo** is a Laravel 12 application for building a school accounting capture and reporting system for "Paradise International School".
+
+### Current State
+- Fresh Laravel 12 installation
+- Inertia.js with Vue 3
+- Tailwind CSS v4
+- Vue3 Snackbar for notifications
+- Font Awesome icons
+- SQLite database (default; MySQL supported)
+- Basic authentication (User model exists)
+- No accounting functionality yet
+
+### Architecture
+- Backend: Laravel 12 (PHP 8.2+)
+- Frontend: Vue 3 + Inertia.js
+- Styling: Tailwind CSS v4
+- Database: SQLite (configurable to MySQL)
+
+### Project Structure
+
+```
+/app
+  /Http
+    /Controllers - Only base Controller.php exists
+    /Middleware - HandleInertiaRequests.php configured
+  /Models - Only User.php exists
+  /Providers - AppServiceProvider.php
+/routes
+  web.php - Only default welcome route
+/resources
+  /js/app.js - Inertia + Vue 3 setup
+  /views/app.blade.php - Inertia root template
+```
+
+### Planned Features (from prompt.txt)
+
+1. Three core database tables:
+   - `accounts` - Chart of accounts
+   - `journal_entries` - Accounting entries
+   - `journal_lines` - Entry line items
+
+2. Double-entry accounting:
+   - Debits must equal credits
+   - Draft and Posted statuses
+   - Reversal entries for corrections
+
+3. Reports:
+   - Account statement (ledger) with running balance
+   - Trial balance
+   - Income statement
+   - Balance sheet
+   - Cash flow statement (direct method)
+
+4. UI requirements:
+   - Top navigation only
+   - Reusable Vue components
+   - Interactive feedback (validation, totals, toasts)
+   - Searchable dropdowns using vue-multiselect
+
+### Next Steps (Not Yet Implemented)
+
+- Create PHP enums (AccountType, NormalBalance, etc.)
+- Create migrations for the three accounting tables
+- Create models (Account, JournalEntry, JournalLine)
+- Create controllers and action classes
+- Build Vue components and pages
+- Implement business logic for posting/reversing entries
+- Generate accounting reports
+
+The project is in the initial setup phase; the accounting functionality is ready to be built according to the specifications in `prompt.txt`.

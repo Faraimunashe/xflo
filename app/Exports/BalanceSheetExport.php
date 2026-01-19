@@ -27,7 +27,8 @@ class BalanceSheetExport implements FromArray, WithHeadings, WithStyles, WithTit
     public function headings(): array
     {
         return [
-            'Item',
+            'Account Code',
+            'Account Name',
             'Amount',
         ];
     }

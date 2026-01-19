@@ -29,25 +29,85 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Assets</h3>
-              <div class="border border-gray-200 rounded-lg p-4">
-                <div class="text-right text-lg font-semibold text-gray-900">{{ formatCurrency(assets) }}</div>
+              <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Code</th>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Name</th>
+                      <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    <tr v-for="item in assetItems" :key="item.code">
+                      <td class="px-4 py-3 text-sm text-gray-900">{{ item.code }}</td>
+                      <td class="px-4 py-3 text-sm text-gray-900">{{ item.name }}</td>
+                      <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ formatCurrency(item.amount) }}</td>
+                    </tr>
+                    <tr v-if="assetItems.length === 0">
+                      <td colspan="3" class="px-4 py-3 text-sm text-gray-500 text-center">No asset accounts found</td>
+                    </tr>
+                    <tr class="bg-gray-50">
+                      <td colspan="2" class="px-4 py-3 text-sm font-semibold text-gray-900">Total Assets</td>
+                      <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">{{ formatCurrency(totalAssets) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
             <div>
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Liabilities & Equity</h3>
-              <div class="border border-gray-200 rounded-lg p-4 space-y-2">
-                <div class="flex justify-between">
-                  <span class="text-sm text-gray-600">Liabilities</span>
-                  <span class="text-sm font-medium text-gray-900">{{ formatCurrency(liabilities) }}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-sm text-gray-600">Equity</span>
-                  <span class="text-sm font-medium text-gray-900">{{ formatCurrency(equity) }}</span>
-                </div>
-                <div class="flex justify-between pt-2 border-t border-gray-200">
-                  <span class="text-sm font-semibold text-gray-900">Total</span>
-                  <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(totalLiabilitiesEquity) }}</span>
-                </div>
+              <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Code</th>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Name</th>
+                      <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    <tr>
+                      <td colspan="3" class="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 uppercase">Liabilities</td>
+                    </tr>
+                    <tr v-for="item in liabilityItems" :key="item.code">
+                      <td class="px-4 py-3 text-sm text-gray-900">{{ item.code }}</td>
+                      <td class="px-4 py-3 text-sm text-gray-900">{{ item.name }}</td>
+                      <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ formatCurrency(item.amount) }}</td>
+                    </tr>
+                    <tr v-if="liabilityItems.length === 0">
+                      <td colspan="3" class="px-4 py-3 text-sm text-gray-500 text-center">No liability accounts found</td>
+                    </tr>
+                    <tr class="bg-gray-50">
+                      <td colspan="2" class="px-4 py-3 text-sm font-semibold text-gray-900">Total Liabilities</td>
+                      <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">{{ formatCurrency(totalLiabilities) }}</td>
+                    </tr>
+                    <tr>
+                      <td colspan="3" class="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 uppercase">Equity</td>
+                    </tr>
+                    <tr v-for="item in equityItems" :key="item.code">
+                      <td class="px-4 py-3 text-sm text-gray-900">{{ item.code }}</td>
+                      <td class="px-4 py-3 text-sm text-gray-900">{{ item.name }}</td>
+                      <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ formatCurrency(item.amount) }}</td>
+                    </tr>
+                    <tr v-if="equityItems.length === 0 && currentSurplus === 0">
+                      <td colspan="3" class="px-4 py-3 text-sm text-gray-500 text-center">No equity accounts found</td>
+                    </tr>
+                    <tr v-if="currentSurplus !== 0">
+                      <td class="px-4 py-3 text-sm text-gray-900"></td>
+                      <td class="px-4 py-3 text-sm text-gray-900">Current Surplus</td>
+                      <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ formatCurrency(currentSurplus) }}</td>
+                    </tr>
+                    <tr class="bg-gray-50">
+                      <td colspan="2" class="px-4 py-3 text-sm font-semibold text-gray-900">Total Equity</td>
+                      <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">{{ formatCurrency(totalEquity) }}</td>
+                    </tr>
+                    <tr class="bg-blue-50">
+                      <td colspan="2" class="px-4 py-3 text-sm font-bold text-gray-900">Total Liabilities & Equity</td>
+                      <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right">{{ formatCurrency(totalLiabilitiesEquity) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -56,13 +116,13 @@
             <div
               :class="[
                 'inline-block px-4 py-2 rounded-md text-sm font-semibold',
-                Math.abs(assets - totalLiabilitiesEquity) < 0.01
+                Math.abs(totalAssets - totalLiabilitiesEquity) < 0.01
                   ? 'bg-green-100 text-green-800'
                   : 'bg-red-100 text-red-800'
               ]"
             >
-              {{ Math.abs(assets - totalLiabilitiesEquity) < 0.01 ? 'Balanced' : 'Not Balanced' }}
-              (Difference: {{ formatCurrency(Math.abs(assets - totalLiabilitiesEquity)) }})
+              {{ Math.abs(totalAssets - totalLiabilitiesEquity) < 0.01 ? 'Balanced' : 'Not Balanced' }}
+              (Difference: {{ formatCurrency(Math.abs(totalAssets - totalLiabilitiesEquity)) }})
             </div>
           </div>
     </Card>
@@ -82,19 +142,35 @@ defineOptions({
 });
 
 const props = defineProps({
-  assets: {
+  assetItems: {
+    type: Array,
+    default: () => [],
+  },
+  liabilityItems: {
+    type: Array,
+    default: () => [],
+  },
+  equityItems: {
+    type: Array,
+    default: () => [],
+  },
+  totalAssets: {
     type: Number,
     default: 0,
   },
-  liabilities: {
+  totalLiabilities: {
     type: Number,
     default: 0,
   },
-  equity: {
+  totalEquityAccounts: {
     type: Number,
     default: 0,
   },
   currentSurplus: {
+    type: Number,
+    default: 0,
+  },
+  totalEquity: {
     type: Number,
     default: 0,
   },

@@ -19,4 +19,18 @@ export default defineConfig({
     }),
     tailwindcss(),
   ],
+  server: {
+    watch: {
+      ignored: [
+        '**/node_modules/**',
+        '**/vendor/**',
+        '**/nativephp/electron/dist/**',
+        '**/nativephp/electron/build/**',
+        '**/nativephp/electron/out/**',
+        '**/storage/**',
+        '**/bootstrap/cache/**',
+        '**/.git/**',
+      ],
+    },
+  },
 });

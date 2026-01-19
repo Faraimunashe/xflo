@@ -57,44 +57,68 @@
     </div>
 
     <table>
+        <thead>
+            <tr>
+                <th class="text-left">Account Code</th>
+                <th class="text-left">Account Name</th>
+                <th class="text-right">Amount</th>
+            </tr>
+        </thead>
         <tbody>
             <tr class="section-header">
-                <td>ASSETS</td>
-                <td></td>
+                <td colspan="3">ASSETS</td>
             </tr>
+            @foreach($assetItems as $item)
             <tr>
-                <td>Total Assets</td>
-                <td class="text-right">{{ number_format($assets, 2) }}</td>
+                <td>{{ $item['code'] }}</td>
+                <td>{{ $item['name'] }}</td>
+                <td class="text-right">{{ number_format($item['amount'], 2) }}</td>
             </tr>
-            <tr><td colspan="2"></td></tr>
+            @endforeach
+            <tr class="total-row">
+                <td colspan="2">Total Assets</td>
+                <td class="text-right">{{ number_format($totalAssets, 2) }}</td>
+            </tr>
+            <tr><td colspan="3"></td></tr>
             <tr class="section-header">
-                <td>LIABILITIES</td>
-                <td></td>
+                <td colspan="3">LIABILITIES</td>
             </tr>
+            @foreach($liabilityItems as $item)
             <tr>
-                <td>Total Liabilities</td>
-                <td class="text-right">{{ number_format($liabilities, 2) }}</td>
+                <td>{{ $item['code'] }}</td>
+                <td>{{ $item['name'] }}</td>
+                <td class="text-right">{{ number_format($item['amount'], 2) }}</td>
             </tr>
-            <tr><td colspan="2"></td></tr>
+            @endforeach
+            <tr class="total-row">
+                <td colspan="2">Total Liabilities</td>
+                <td class="text-right">{{ number_format($totalLiabilities, 2) }}</td>
+            </tr>
+            <tr><td colspan="3"></td></tr>
             <tr class="section-header">
-                <td>EQUITY</td>
+                <td colspan="3">EQUITY</td>
+            </tr>
+            @foreach($equityItems as $item)
+            <tr>
+                <td>{{ $item['code'] }}</td>
+                <td>{{ $item['name'] }}</td>
+                <td class="text-right">{{ number_format($item['amount'], 2) }}</td>
+            </tr>
+            @endforeach
+            @if($currentSurplus != 0)
+            <tr>
                 <td></td>
-            </tr>
-            <tr>
-                <td>Equity Accounts</td>
-                <td class="text-right">{{ number_format($equity - $currentSurplus, 2) }}</td>
-            </tr>
-            <tr>
                 <td>Current Surplus</td>
                 <td class="text-right">{{ number_format($currentSurplus, 2) }}</td>
             </tr>
-            <tr>
-                <td>Total Equity</td>
-                <td class="text-right">{{ number_format($equity, 2) }}</td>
-            </tr>
-            <tr><td colspan="2"></td></tr>
+            @endif
             <tr class="total-row">
-                <td>Total Liabilities & Equity</td>
+                <td colspan="2">Total Equity</td>
+                <td class="text-right">{{ number_format($totalEquity, 2) }}</td>
+            </tr>
+            <tr><td colspan="3"></td></tr>
+            <tr class="total-row">
+                <td colspan="2">Total Liabilities & Equity</td>
                 <td class="text-right">{{ number_format($totalLiabilitiesEquity, 2) }}</td>
             </tr>
         </tbody>

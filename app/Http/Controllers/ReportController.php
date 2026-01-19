@@ -243,24 +243,130 @@ class ReportController extends Controller
     {
         $asAtDate = $request->get('as_at_date', now()->toDateString());
 
-        $assets = $this->getAccountTypeBalance(AccountType::ASSET, $asAtDate);
-        $liabilities = $this->getAccountTypeBalance(AccountType::LIABILITY, $asAtDate);
-        
-        $equityAccounts = $this->getAccountTypeBalance(AccountType::EQUITY, $asAtDate);
-        
+        // Get individual asset accounts
+        $assetAccounts = Account::where('type', AccountType::ASSET)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
+        $assetItems = [];
+        foreach ($assetAccounts as $account) {
+            $balance = JournalLine::query()
+                ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                ->where('journal_entries.status', JournalEntryStatus::POSTED)
+                ->where('journal_lines.account_id', $account->id)
+                ->where('journal_entries.entry_date', '<=', $asAtDate)
+                ->selectRaw('SUM(journal_lines.debit) as total_debit, SUM(journal_lines.credit) as total_credit')
+                ->first();
+
+            $debit = (float) ($balance->total_debit ?? 0);
+            $credit = (float) ($balance->total_credit ?? 0);
+
+            if ($account->normal_balance->value === 'debit') {
+                $amount = $debit - $credit;
+            } else {
+                $amount = $credit - $debit;
+            }
+
+            if ($amount > 0) {
+                $assetItems[] = [
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'amount' => $amount,
+                ];
+            }
+        }
+
+        // Get individual liability accounts
+        $liabilityAccounts = Account::where('type', AccountType::LIABILITY)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
+        $liabilityItems = [];
+        foreach ($liabilityAccounts as $account) {
+            $balance = JournalLine::query()
+                ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                ->where('journal_entries.status', JournalEntryStatus::POSTED)
+                ->where('journal_lines.account_id', $account->id)
+                ->where('journal_entries.entry_date', '<=', $asAtDate)
+                ->selectRaw('SUM(journal_lines.debit) as total_debit, SUM(journal_lines.credit) as total_credit')
+                ->first();
+
+            $debit = (float) ($balance->total_debit ?? 0);
+            $credit = (float) ($balance->total_credit ?? 0);
+
+            if ($account->normal_balance->value === 'credit') {
+                $amount = $credit - $debit;
+            } else {
+                $amount = $debit - $credit;
+            }
+
+            if ($amount > 0) {
+                $liabilityItems[] = [
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'amount' => $amount,
+                ];
+            }
+        }
+
+        // Get individual equity accounts
+        $equityAccountRecords = Account::where('type', AccountType::EQUITY)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
+        $equityItems = [];
+        foreach ($equityAccountRecords as $account) {
+            $balance = JournalLine::query()
+                ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                ->where('journal_entries.status', JournalEntryStatus::POSTED)
+                ->where('journal_lines.account_id', $account->id)
+                ->where('journal_entries.entry_date', '<=', $asAtDate)
+                ->selectRaw('SUM(journal_lines.debit) as total_debit, SUM(journal_lines.credit) as total_credit')
+                ->first();
+
+            $debit = (float) ($balance->total_debit ?? 0);
+            $credit = (float) ($balance->total_credit ?? 0);
+
+            if ($account->normal_balance->value === 'credit') {
+                $amount = $credit - $debit;
+            } else {
+                $amount = $debit - $credit;
+            }
+
+            if ($amount > 0) {
+                $equityItems[] = [
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'amount' => $amount,
+                ];
+            }
+        }
+
+        // Calculate current surplus (revenue - expenses for the year)
         $dateFrom = now()->startOfYear()->toDateString();
         $revenue = $this->getAccountTypeTotal(AccountType::REVENUE, $dateFrom, $asAtDate);
         $expenses = $this->getAccountTypeTotal(AccountType::EXPENSE, $dateFrom, $asAtDate);
         $currentSurplus = $revenue - $expenses;
 
-        $equity = $equityAccounts + $currentSurplus;
-        $totalLiabilitiesEquity = $liabilities + $equity;
+        // Calculate totals
+        $totalAssets = collect($assetItems)->sum('amount');
+        $totalLiabilities = collect($liabilityItems)->sum('amount');
+        $totalEquityAccounts = collect($equityItems)->sum('amount');
+        $totalEquity = $totalEquityAccounts + $currentSurplus;
+        $totalLiabilitiesEquity = $totalLiabilities + $totalEquity;
 
         return Inertia::render('Reports/BalanceSheet', [
-            'assets' => $assets,
-            'liabilities' => $liabilities,
-            'equity' => $equity,
+            'assetItems' => $assetItems,
+            'liabilityItems' => $liabilityItems,
+            'equityItems' => $equityItems,
+            'totalAssets' => $totalAssets,
+            'totalLiabilities' => $totalLiabilities,
+            'totalEquityAccounts' => $totalEquityAccounts,
             'currentSurplus' => $currentSurplus,
+            'totalEquity' => $totalEquity,
             'totalLiabilitiesEquity' => $totalLiabilitiesEquity,
             'asAtDate' => $asAtDate,
         ]);
@@ -608,23 +714,130 @@ class ReportController extends Controller
     {
         $asAtDate = $request->get('as_at_date', now()->toDateString());
 
-        $assets = $this->getAccountTypeBalance(AccountType::ASSET, $asAtDate);
-        $liabilities = $this->getAccountTypeBalance(AccountType::LIABILITY, $asAtDate);
-        $equityAccounts = $this->getAccountTypeBalance(AccountType::EQUITY, $asAtDate);
-        
+        // Get individual asset accounts
+        $assetAccounts = Account::where('type', AccountType::ASSET)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
+        $assetItems = [];
+        foreach ($assetAccounts as $account) {
+            $balance = JournalLine::query()
+                ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                ->where('journal_entries.status', JournalEntryStatus::POSTED)
+                ->where('journal_lines.account_id', $account->id)
+                ->where('journal_entries.entry_date', '<=', $asAtDate)
+                ->selectRaw('SUM(journal_lines.debit) as total_debit, SUM(journal_lines.credit) as total_credit')
+                ->first();
+
+            $debit = (float) ($balance->total_debit ?? 0);
+            $credit = (float) ($balance->total_credit ?? 0);
+
+            if ($account->normal_balance->value === 'debit') {
+                $amount = $debit - $credit;
+            } else {
+                $amount = $credit - $debit;
+            }
+
+            if ($amount > 0) {
+                $assetItems[] = [
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'amount' => $amount,
+                ];
+            }
+        }
+
+        // Get individual liability accounts
+        $liabilityAccounts = Account::where('type', AccountType::LIABILITY)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
+        $liabilityItems = [];
+        foreach ($liabilityAccounts as $account) {
+            $balance = JournalLine::query()
+                ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                ->where('journal_entries.status', JournalEntryStatus::POSTED)
+                ->where('journal_lines.account_id', $account->id)
+                ->where('journal_entries.entry_date', '<=', $asAtDate)
+                ->selectRaw('SUM(journal_lines.debit) as total_debit, SUM(journal_lines.credit) as total_credit')
+                ->first();
+
+            $debit = (float) ($balance->total_debit ?? 0);
+            $credit = (float) ($balance->total_credit ?? 0);
+
+            if ($account->normal_balance->value === 'credit') {
+                $amount = $credit - $debit;
+            } else {
+                $amount = $debit - $credit;
+            }
+
+            if ($amount > 0) {
+                $liabilityItems[] = [
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'amount' => $amount,
+                ];
+            }
+        }
+
+        // Get individual equity accounts
+        $equityAccountRecords = Account::where('type', AccountType::EQUITY)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
+        $equityItems = [];
+        foreach ($equityAccountRecords as $account) {
+            $balance = JournalLine::query()
+                ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                ->where('journal_entries.status', JournalEntryStatus::POSTED)
+                ->where('journal_lines.account_id', $account->id)
+                ->where('journal_entries.entry_date', '<=', $asAtDate)
+                ->selectRaw('SUM(journal_lines.debit) as total_debit, SUM(journal_lines.credit) as total_credit')
+                ->first();
+
+            $debit = (float) ($balance->total_debit ?? 0);
+            $credit = (float) ($balance->total_credit ?? 0);
+
+            if ($account->normal_balance->value === 'credit') {
+                $amount = $credit - $debit;
+            } else {
+                $amount = $debit - $credit;
+            }
+
+            if ($amount > 0) {
+                $equityItems[] = [
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'amount' => $amount,
+                ];
+            }
+        }
+
+        // Calculate current surplus
         $dateFrom = now()->startOfYear()->toDateString();
         $revenue = $this->getAccountTypeTotal(AccountType::REVENUE, $dateFrom, $asAtDate);
         $expenses = $this->getAccountTypeTotal(AccountType::EXPENSE, $dateFrom, $asAtDate);
         $currentSurplus = $revenue - $expenses;
 
-        $equity = $equityAccounts + $currentSurplus;
-        $totalLiabilitiesEquity = $liabilities + $equity;
+        // Calculate totals
+        $totalAssets = collect($assetItems)->sum('amount');
+        $totalLiabilities = collect($liabilityItems)->sum('amount');
+        $totalEquityAccounts = collect($equityItems)->sum('amount');
+        $totalEquity = $totalEquityAccounts + $currentSurplus;
+        $totalLiabilitiesEquity = $totalLiabilities + $totalEquity;
 
         $pdf = DomPDF::loadView('reports.balance-sheet-pdf', [
-            'assets' => $assets,
-            'liabilities' => $liabilities,
-            'equity' => $equity,
+            'assetItems' => $assetItems,
+            'liabilityItems' => $liabilityItems,
+            'equityItems' => $equityItems,
+            'totalAssets' => $totalAssets,
+            'totalLiabilities' => $totalLiabilities,
+            'totalEquityAccounts' => $totalEquityAccounts,
             'currentSurplus' => $currentSurplus,
+            'totalEquity' => $totalEquity,
             'totalLiabilitiesEquity' => $totalLiabilitiesEquity,
             'asAtDate' => $asAtDate,
         ]);
@@ -927,32 +1140,145 @@ class ReportController extends Controller
     {
         $asAtDate = $request->get('as_at_date', now()->toDateString());
 
-        $assets = $this->getAccountTypeBalance(AccountType::ASSET, $asAtDate);
-        $liabilities = $this->getAccountTypeBalance(AccountType::LIABILITY, $asAtDate);
-        $equityAccounts = $this->getAccountTypeBalance(AccountType::EQUITY, $asAtDate);
-        
+        // Get individual asset accounts
+        $assetAccounts = Account::where('type', AccountType::ASSET)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
+        $assetItems = [];
+        foreach ($assetAccounts as $account) {
+            $balance = JournalLine::query()
+                ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                ->where('journal_entries.status', JournalEntryStatus::POSTED)
+                ->where('journal_lines.account_id', $account->id)
+                ->where('journal_entries.entry_date', '<=', $asAtDate)
+                ->selectRaw('SUM(journal_lines.debit) as total_debit, SUM(journal_lines.credit) as total_credit')
+                ->first();
+
+            $debit = (float) ($balance->total_debit ?? 0);
+            $credit = (float) ($balance->total_credit ?? 0);
+
+            if ($account->normal_balance->value === 'debit') {
+                $amount = $debit - $credit;
+            } else {
+                $amount = $credit - $debit;
+            }
+
+            if ($amount > 0) {
+                $assetItems[] = [
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'amount' => $amount,
+                ];
+            }
+        }
+
+        // Get individual liability accounts
+        $liabilityAccounts = Account::where('type', AccountType::LIABILITY)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
+        $liabilityItems = [];
+        foreach ($liabilityAccounts as $account) {
+            $balance = JournalLine::query()
+                ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                ->where('journal_entries.status', JournalEntryStatus::POSTED)
+                ->where('journal_lines.account_id', $account->id)
+                ->where('journal_entries.entry_date', '<=', $asAtDate)
+                ->selectRaw('SUM(journal_lines.debit) as total_debit, SUM(journal_lines.credit) as total_credit')
+                ->first();
+
+            $debit = (float) ($balance->total_debit ?? 0);
+            $credit = (float) ($balance->total_credit ?? 0);
+
+            if ($account->normal_balance->value === 'credit') {
+                $amount = $credit - $debit;
+            } else {
+                $amount = $debit - $credit;
+            }
+
+            if ($amount > 0) {
+                $liabilityItems[] = [
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'amount' => $amount,
+                ];
+            }
+        }
+
+        // Get individual equity accounts
+        $equityAccountRecords = Account::where('type', AccountType::EQUITY)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
+        $equityItems = [];
+        foreach ($equityAccountRecords as $account) {
+            $balance = JournalLine::query()
+                ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                ->where('journal_entries.status', JournalEntryStatus::POSTED)
+                ->where('journal_lines.account_id', $account->id)
+                ->where('journal_entries.entry_date', '<=', $asAtDate)
+                ->selectRaw('SUM(journal_lines.debit) as total_debit, SUM(journal_lines.credit) as total_credit')
+                ->first();
+
+            $debit = (float) ($balance->total_debit ?? 0);
+            $credit = (float) ($balance->total_credit ?? 0);
+
+            if ($account->normal_balance->value === 'credit') {
+                $amount = $credit - $debit;
+            } else {
+                $amount = $debit - $credit;
+            }
+
+            if ($amount > 0) {
+                $equityItems[] = [
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'amount' => $amount,
+                ];
+            }
+        }
+
+        // Calculate current surplus
         $dateFrom = now()->startOfYear()->toDateString();
         $revenue = $this->getAccountTypeTotal(AccountType::REVENUE, $dateFrom, $asAtDate);
         $expenses = $this->getAccountTypeTotal(AccountType::EXPENSE, $dateFrom, $asAtDate);
         $currentSurplus = $revenue - $expenses;
 
-        $equity = $equityAccounts + $currentSurplus;
-        $totalLiabilitiesEquity = $liabilities + $equity;
+        // Calculate totals
+        $totalAssets = collect($assetItems)->sum('amount');
+        $totalLiabilities = collect($liabilityItems)->sum('amount');
+        $totalEquityAccounts = collect($equityItems)->sum('amount');
+        $totalEquity = $totalEquityAccounts + $currentSurplus;
+        $totalLiabilitiesEquity = $totalLiabilities + $totalEquity;
 
-        $data = [
-            ['ASSETS', ''],
-            ['Total Assets', number_format($assets, 2)],
-            [''],
-            ['LIABILITIES', ''],
-            ['Total Liabilities', number_format($liabilities, 2)],
-            [''],
-            ['EQUITY', ''],
-            ['Equity Accounts', number_format($equityAccounts, 2)],
-            ['Current Surplus', number_format($currentSurplus, 2)],
-            ['Total Equity', number_format($equity, 2)],
-            [''],
-            ['Total Liabilities & Equity', number_format($totalLiabilitiesEquity, 2)],
-        ];
+        $data = [];
+        $data[] = ['Account Code', 'Account Name', 'Amount'];
+        $data[] = ['ASSETS', '', ''];
+        foreach ($assetItems as $item) {
+            $data[] = [$item['code'], $item['name'], number_format($item['amount'], 2)];
+        }
+        $data[] = ['', 'Total Assets', number_format($totalAssets, 2)];
+        $data[] = ['', '', ''];
+        $data[] = ['LIABILITIES', '', ''];
+        foreach ($liabilityItems as $item) {
+            $data[] = [$item['code'], $item['name'], number_format($item['amount'], 2)];
+        }
+        $data[] = ['', 'Total Liabilities', number_format($totalLiabilities, 2)];
+        $data[] = ['', '', ''];
+        $data[] = ['EQUITY', '', ''];
+        foreach ($equityItems as $item) {
+            $data[] = [$item['code'], $item['name'], number_format($item['amount'], 2)];
+        }
+        if ($currentSurplus != 0) {
+            $data[] = ['', 'Current Surplus', number_format($currentSurplus, 2)];
+        }
+        $data[] = ['', 'Total Equity', number_format($totalEquity, 2)];
+        $data[] = ['', '', ''];
+        $data[] = ['', 'Total Liabilities & Equity', number_format($totalLiabilitiesEquity, 2)];
 
         return Excel::download(new \App\Exports\BalanceSheetExport($data, $asAtDate), 'balance-sheet-' . $asAtDate . '.xlsx');
     }
